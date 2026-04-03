@@ -28,10 +28,12 @@ class TestCase extends Orchestra
     {
         $this->runMigrationStub('create_lti_platforms_table');
         $this->runMigrationStub('create_lti_launches_table');
+        $this->runMigrationStub('create_lti_tool_keys_table');
     }
 
     public function getEnvironmentSetUp($app)
     {
+        config()->set('app.key', 'base64:'.base64_encode(str_repeat('a', 32)));
         config()->set('database.default', 'testing');
         config()->set('database.connections.testing', [
             'driver' => 'sqlite',

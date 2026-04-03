@@ -3,17 +3,18 @@
 namespace RefBytes\Lti\Services;
 
 use Illuminate\Contracts\Cache\Repository;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
-use RefBytes\Lti\Contracts\TenantResolver;
+use RefBytes\Lti\Concerns\ResolvesTenant;
 use RefBytes\Lti\Exceptions\LtiPlatformNotFoundException;
 use RefBytes\Lti\Models\LtiPlatform;
 
 class OidcLoginService
 {
+    use ResolvesTenant;
+
     /**
      * Handle the OIDC login initiation request from the platform.
      */
@@ -74,20 +75,6 @@ class OidcLoginService
         $ttl = config('lti.state_ttl', 600);
 
         $this->cache()->put($prefix.'state:'.$state, $data, $ttl);
-    }
-
-    private function resolveTenant(Request $request): ?Model
-    {
-        $resolverClass = config('lti.tenant_resolver');
-
-        if (! $resolverClass || ! config('lti.tenant_model')) {
-            return null;
-        }
-
-        /** @var TenantResolver $resolver */
-        $resolver = app($resolverClass);
-
-        return $resolver->resolve($request);
     }
 
     private function cache(): Repository

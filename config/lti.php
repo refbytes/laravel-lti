@@ -62,4 +62,23 @@ return [
 
     'store_launches' => false,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Tool Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Metadata about this tool that platforms need during registration.
+    |
+    */
+
+    'tool' => [
+        'name' => env('LTI_TOOL_NAME'),
+        'description' => env('LTI_TOOL_DESCRIPTION', ''),
+        'domain' => env('LTI_TOOL_DOMAIN'),
+        'key_algorithm' => 'RS256',
+        'key_bits' => 2048,
+    ],
+
+    'tool_jwks_ttl' => 3600,
+
 ];

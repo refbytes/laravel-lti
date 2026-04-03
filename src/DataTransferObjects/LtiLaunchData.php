@@ -54,4 +54,18 @@ final readonly class LtiLaunchData
         return $this->hasRole('http://purl.imsglobal.org/vocab/lis/v2/membership#Learner')
             || $this->hasRole('http://purl.imsglobal.org/vocab/lis/v2/institution/person#Learner');
     }
+
+    public function isDeepLinkingRequest(): bool
+    {
+        return $this->messageType === 'LtiDeepLinkingRequest';
+    }
+
+    public function deepLinkingSettings(): ?DeepLinkingSettings
+    {
+        if (! $this->isDeepLinkingRequest()) {
+            return null;
+        }
+
+        return DeepLinkingSettings::fromClaims($this->claims);
+    }
 }

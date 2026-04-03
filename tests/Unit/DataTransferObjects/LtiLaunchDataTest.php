@@ -63,3 +63,43 @@ it('checks learner role', function () {
     expect($data->isLearner())->toBeTrue();
     expect($data->isInstructor())->toBeFalse();
 });
+
+it('detects nrps support', function () {
+    $data = new LtiLaunchData(
+        platform: LtiPlatform::factory()->make(),
+        messageType: 'LtiResourceLinkRequest',
+        ltiVersion: '1.3.0',
+        deploymentId: null,
+        targetLinkUri: 'https://tool.example.com/launch',
+        resourceLinkId: null,
+        userId: 'user-1',
+        roles: [],
+        claims: [
+            'https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice' => [
+                'context_memberships_url' => 'https://canvas.example.com/memberships',
+                'service_versions' => ['2.0'],
+            ],
+        ],
+    );
+
+    expect($data->hasNrps())->toBeTrue();
+    expect($data->nrpsServiceInfo())->not->toBeNull();
+    expect($data->nrpsServiceInfo()->contextMembershipsUrl)->toBe('https://canvas.example.com/memberships');
+});
+
+it('returns null nrps info when not present', function () {
+    $data = new LtiLaunchData(
+        platform: LtiPlatform::factory()->make(),
+        messageType: 'LtiResourceLinkRequest',
+        ltiVersion: '1.3.0',
+        deploymentId: null,
+        targetLinkUri: 'https://tool.example.com/launch',
+        resourceLinkId: null,
+        userId: 'user-1',
+        roles: [],
+        claims: [],
+    );
+
+    expect($data->hasNrps())->toBeFalse();
+    expect($data->nrpsServiceInfo())->toBeNull();
+});

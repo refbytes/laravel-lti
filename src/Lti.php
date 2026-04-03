@@ -4,11 +4,14 @@ namespace RefBytes\Lti;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Response;
+use Illuminate\Support\LazyCollection;
 use RefBytes\Lti\Contracts\ContentItem;
 use RefBytes\Lti\DataTransferObjects\LtiLaunchData;
+use RefBytes\Lti\DataTransferObjects\NrpsMembershipResult;
 use RefBytes\Lti\Models\LtiPlatform;
 use RefBytes\Lti\Models\LtiToolKey;
 use RefBytes\Lti\Services\DeepLinkingService;
+use RefBytes\Lti\Services\NrpsClient;
 use RefBytes\Lti\Services\PlatformOAuth2Service;
 use RefBytes\Lti\Services\ToolKeyService;
 
@@ -96,5 +99,31 @@ class Lti
     public function buildDeepLinkingFormResponse(LtiLaunchData $launchData, array $contentItems, ?Model $tenant = null): Response
     {
         return app(DeepLinkingService::class)->buildFormResponse($launchData, $contentItems, $tenant);
+    }
+
+    /**
+     * Get all members from the NRPS context memberships endpoint.
+     */
+    public function getMembers(
+        LtiLaunchData $launchData,
+        ?string $role = null,
+        ?int $limit = null,
+        ?string $resourceLinkId = null,
+        ?Model $tenant = null,
+    ): NrpsMembershipResult {
+        return app(NrpsClient::class)->getMembers($launchData, $role, $limit, $resourceLinkId, $tenant);
+    }
+
+    /**
+     * Lazily iterate members from the NRPS endpoint, fetching pages on demand.
+     */
+    public function getMembersLazy(
+        LtiLaunchData $launchData,
+        ?string $role = null,
+        ?int $limit = null,
+        ?string $resourceLinkId = null,
+        ?Model $tenant = null,
+    ): LazyCollection {
+        return app(NrpsClient::class)->getMembersLazy($launchData, $role, $limit, $resourceLinkId, $tenant);
     }
 }

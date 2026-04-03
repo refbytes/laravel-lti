@@ -2,9 +2,9 @@
 
 namespace RefBytes\Lti;
 
+use RefBytes\Lti\Commands\LtiCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use RefBytes\Lti\Commands\LtiCommand;
 
 class LtiServiceProvider extends PackageServiceProvider
 {

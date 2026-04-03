@@ -5,10 +5,10 @@ putenv('CACHE_STORE=array');
 $_ENV['CACHE_STORE'] = 'array';
 
 // Get the path to Testbench
-$testbenchPath = __DIR__ . '/vendor/bin/testbench';
+$testbenchPath = __DIR__.'/vendor/bin/testbench';
 
 // Check if Testbench exists
-if (!file_exists($testbenchPath)) {
+if (! file_exists($testbenchPath)) {
     fwrite(STDERR, "Error: vendor/bin/testbench not found. Run 'composer install' first.\n");
     exit(1);
 }
@@ -18,8 +18,8 @@ $args = array_slice($argv, 1);
 
 // Build the command
 $command = escapeshellarg($testbenchPath);
-if (!empty($args)) {
-    $command .= ' ' . implode(' ', array_map('escapeshellarg', $args));
+if (! empty($args)) {
+    $command .= ' '.implode(' ', array_map('escapeshellarg', $args));
 }
 
 // Execute and pass through exit code

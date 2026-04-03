@@ -82,4 +82,18 @@ final readonly class LtiLaunchData
 
         return NrpsServiceInfo::fromClaims($this->claims);
     }
+
+    public function hasAgs(): bool
+    {
+        return $this->claim(AgsServiceInfo::CLAIM_KEY) !== null;
+    }
+
+    public function agsServiceInfo(): ?AgsServiceInfo
+    {
+        if (! $this->hasAgs()) {
+            return null;
+        }
+
+        return AgsServiceInfo::fromClaims($this->claims);
+    }
 }

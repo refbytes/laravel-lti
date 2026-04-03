@@ -190,6 +190,7 @@ $launch->hasRole('http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor')
 
 // Service discovery
 $launch->hasNrps();               // true if NRPS is available
+$launch->hasAgs();                // true if AGS (grade passback) is available
 $launch->isDeepLinkingRequest();  // true if this is a deep linking request
 ```
 
@@ -348,6 +349,141 @@ $emails = Lti::getMembersLazy($launch)
     ->filter(fn ($m) => $m->isLearner())
     ->map(fn ($m) => $m->email)
     ->all();
+```
+
+## Assignment and Grade Services (AGS)
+
+AGS lets your tool manage gradebook columns (line items), submit scores for students, and read results back from the platform.
+
+### Check availability
+
+```php
+if ($launch->hasAgs()) {
+    $ags = $launch->agsServiceInfo();
+
+    $ags->canManageLineItems();  // Can create/update/delete line items
+    $ags->canReadLineItems();    // Can list and read line items
+    $ags->canPostScores();       // Can submit scores
+    $ags->canReadResults();      // Can read results
+}
+```
+
+### Managing line items (gradebook columns)
+
+```php
+use RefBytes\Lti\DataTransferObjects\AgsLineItem;
+use RefBytes\Lti\Facades\Lti;
+
+// List all line items
+$lineItems = Lti::getLineItems($launch);
+
+foreach ($lineItems as $item) {
+    $item->id;             // Platform-assigned URL
+    $item->label;          // Display name
+    $item->scoreMaximum;   // Max points
+    $item->resourceId;     // Your tool's resource identifier
+    $item->tag;            // Metadata tag
+}
+
+// Filter line items
+$quizItems = Lti::getLineItems($launch, tag: 'quiz');
+$myItems = Lti::getLineItems($launch, resourceLinkId: $launch->resourceLinkId);
+
+// Get a single line item
+$item = Lti::getLineItem($launch, $lineItemUrl);
+
+// Create a new line item
+$newItem = AgsLineItem::make('Midterm Exam', 100.0)
+    ->tag('exam')
+    ->resourceId('midterm-2026')
+    ->resourceLinkId($launch->resourceLinkId)
+    ->startDateTime('2026-04-15T00:00:00Z')
+    ->endDateTime('2026-04-15T23:59:59Z');
+
+$created = Lti::createLineItem($launch, $newItem);
+// $created->id now contains the platform-assigned URL
+
+// Update a line item
+$updated = AgsLineItem::make('Midterm Exam (Revised)', 120.0);
+$result = Lti::updateLineItem($launch, $created->id, $updated);
+
+// Delete a line item
+Lti::deleteLineItem($launch, $created->id);
+```
+
+### Submitting scores
+
+```php
+use RefBytes\Lti\DataTransferObjects\AgsScore;
+use RefBytes\Lti\Facades\Lti;
+
+// Submit a fully graded score
+$score = AgsScore::make($launch->userId)
+    ->scoreGiven(85.0)
+    ->scoreMaximum(100.0)
+    ->comment('Well done!');
+
+Lti::submitScore($launch, $lineItemUrl, $score);
+
+// Submit with custom progress states
+$score = AgsScore::make($studentUserId)
+    ->scoreGiven(0)
+    ->scoreMaximum(100.0)
+    ->activityProgress(AgsScore::ACTIVITY_IN_PROGRESS)
+    ->gradingProgress(AgsScore::GRADING_PENDING);
+
+Lti::submitScore($launch, $lineItemUrl, $score);
+```
+
+**Activity progress values:** `Initialized`, `Started`, `InProgress`, `Submitted`, `Completed`
+
+**Grading progress values:** `FullyGraded`, `Pending`, `PendingManual`, `NotReady`
+
+By default, `AgsScore::make()` sets `activityProgress` to `Completed`, `gradingProgress` to `FullyGraded`, and `timestamp` to the current time.
+
+### Reading results
+
+```php
+use RefBytes\Lti\Facades\Lti;
+
+// Get all results for a line item
+$results = Lti::getResults($launch, $lineItemUrl);
+
+foreach ($results as $result) {
+    $result->userId;
+    $result->resultScore;    // Current grade (may be null)
+    $result->resultMaximum;  // Max possible score
+    $result->comment;        // Instructor feedback
+}
+
+// Filter by specific user
+$results = Lti::getResults($launch, $lineItemUrl, userId: $studentId);
+```
+
+### Common workflow: Deep Linking + AGS
+
+When you create content via deep linking with a `lineItem`, the platform creates the gradebook column automatically. Later, during a resource link launch, you can submit scores:
+
+```php
+// 1. During deep linking: create content with a grade column
+$item = LtiResourceLinkItem::make('https://yourtool.com/quiz/42')
+    ->title('Chapter 5 Quiz')
+    ->lineItem(100.0, 'Quiz Score');
+
+return Lti::buildDeepLinkingFormResponse($launch, [$item]);
+
+// 2. During a resource link launch: submit the student's score
+if ($launch->hasAgs()) {
+    $lineItems = Lti::getLineItems($launch, resourceLinkId: $launch->resourceLinkId);
+
+    if (! empty($lineItems)) {
+        $score = AgsScore::make($launch->userId)
+            ->scoreGiven($studentScore)
+            ->scoreMaximum(100.0);
+
+        Lti::submitScore($launch, $lineItems[0]->id, $score);
+    }
+}
 ```
 
 ## Tool Key Management

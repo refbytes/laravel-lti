@@ -6,10 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Response;
 use Illuminate\Support\LazyCollection;
 use RefBytes\Lti\Contracts\ContentItem;
+use RefBytes\Lti\DataTransferObjects\AgsLineItem;
+use RefBytes\Lti\DataTransferObjects\AgsResult;
+use RefBytes\Lti\DataTransferObjects\AgsScore;
 use RefBytes\Lti\DataTransferObjects\LtiLaunchData;
 use RefBytes\Lti\DataTransferObjects\NrpsMembershipResult;
 use RefBytes\Lti\Models\LtiPlatform;
 use RefBytes\Lti\Models\LtiToolKey;
+use RefBytes\Lti\Services\AgsClient;
 use RefBytes\Lti\Services\DeepLinkingService;
 use RefBytes\Lti\Services\NrpsClient;
 use RefBytes\Lti\Services\PlatformOAuth2Service;
@@ -125,5 +129,76 @@ class Lti
         ?Model $tenant = null,
     ): LazyCollection {
         return app(NrpsClient::class)->getMembersLazy($launchData, $role, $limit, $resourceLinkId, $tenant);
+    }
+
+    /**
+     * List all line items for a context.
+     *
+     * @return array<AgsLineItem>
+     */
+    public function getLineItems(
+        LtiLaunchData $launchData,
+        ?string $resourceId = null,
+        ?string $tag = null,
+        ?string $resourceLinkId = null,
+        ?int $limit = null,
+        ?Model $tenant = null,
+    ): array {
+        return app(AgsClient::class)->getLineItems($launchData, $resourceId, $tag, $resourceLinkId, $limit, $tenant);
+    }
+
+    /**
+     * Get a single line item by URL.
+     */
+    public function getLineItem(LtiLaunchData $launchData, string $lineItemUrl, ?Model $tenant = null): AgsLineItem
+    {
+        return app(AgsClient::class)->getLineItem($launchData, $lineItemUrl, $tenant);
+    }
+
+    /**
+     * Create a new line item.
+     */
+    public function createLineItem(LtiLaunchData $launchData, AgsLineItem $lineItem, ?Model $tenant = null): AgsLineItem
+    {
+        return app(AgsClient::class)->createLineItem($launchData, $lineItem, $tenant);
+    }
+
+    /**
+     * Update an existing line item.
+     */
+    public function updateLineItem(LtiLaunchData $launchData, string $lineItemUrl, AgsLineItem $lineItem, ?Model $tenant = null): AgsLineItem
+    {
+        return app(AgsClient::class)->updateLineItem($launchData, $lineItemUrl, $lineItem, $tenant);
+    }
+
+    /**
+     * Delete a line item.
+     */
+    public function deleteLineItem(LtiLaunchData $launchData, string $lineItemUrl, ?Model $tenant = null): void
+    {
+        app(AgsClient::class)->deleteLineItem($launchData, $lineItemUrl, $tenant);
+    }
+
+    /**
+     * Submit a score for a user on a line item.
+     */
+    public function submitScore(LtiLaunchData $launchData, string $lineItemUrl, AgsScore $score, ?Model $tenant = null): void
+    {
+        app(AgsClient::class)->submitScore($launchData, $lineItemUrl, $score, $tenant);
+    }
+
+    /**
+     * Get results for a line item.
+     *
+     * @return array<AgsResult>
+     */
+    public function getResults(
+        LtiLaunchData $launchData,
+        string $lineItemUrl,
+        ?string $userId = null,
+        ?int $limit = null,
+        ?Model $tenant = null,
+    ): array {
+        return app(AgsClient::class)->getResults($launchData, $lineItemUrl, $userId, $limit, $tenant);
     }
 }

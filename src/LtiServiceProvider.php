@@ -5,6 +5,7 @@ namespace RefBytes\Lti;
 use RefBytes\Lti\Commands\DeactivateToolKeyCommand;
 use RefBytes\Lti\Commands\GenerateToolKeyCommand;
 use RefBytes\Lti\Commands\ListToolKeysCommand;
+use RefBytes\Lti\Services\AgsClient;
 use RefBytes\Lti\Services\DeepLinkingService;
 use RefBytes\Lti\Services\JwksService;
 use RefBytes\Lti\Services\LaunchValidationService;
@@ -45,5 +46,6 @@ class LtiServiceProvider extends PackageServiceProvider
         $this->app->singleton(PlatformOAuth2Service::class);
         $this->app->singleton(DeepLinkingService::class);
         $this->app->singleton(NrpsClient::class);
+        $this->app->singleton(AgsClient::class);
     }
 }

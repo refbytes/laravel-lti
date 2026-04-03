@@ -24,14 +24,26 @@ class TestCase extends Orchestra
         ];
     }
 
+    protected function defineDatabaseMigrations(): void
+    {
+        $this->runMigrationStub('create_lti_platforms_table');
+        $this->runMigrationStub('create_lti_launches_table');
+    }
+
     public function getEnvironmentSetUp($app)
     {
         config()->set('database.default', 'testing');
+        config()->set('database.connections.testing', [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => '',
+        ]);
+    }
 
-        /*
-         foreach (\Illuminate\Support\Facades\File::allFiles(__DIR__ . '/../database/migrations') as $migration) {
-            (include $migration->getRealPath())->up();
-         }
-         */
+    private function runMigrationStub(string $name): void
+    {
+        $stub = __DIR__.'/../database/migrations/'.$name.'.php.stub';
+
+        (include $stub)->up();
     }
 }

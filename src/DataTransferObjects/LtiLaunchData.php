@@ -68,4 +68,18 @@ final readonly class LtiLaunchData
 
         return DeepLinkingSettings::fromClaims($this->claims);
     }
+
+    public function hasNrps(): bool
+    {
+        return $this->claim(NrpsServiceInfo::CLAIM_KEY) !== null;
+    }
+
+    public function nrpsServiceInfo(): ?NrpsServiceInfo
+    {
+        if (! $this->hasNrps()) {
+            return null;
+        }
+
+        return NrpsServiceInfo::fromClaims($this->claims);
+    }
 }

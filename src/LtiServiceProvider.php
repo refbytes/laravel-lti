@@ -8,6 +8,7 @@ use RefBytes\Lti\Commands\ListToolKeysCommand;
 use RefBytes\Lti\Services\DeepLinkingService;
 use RefBytes\Lti\Services\JwksService;
 use RefBytes\Lti\Services\LaunchValidationService;
+use RefBytes\Lti\Services\NrpsClient;
 use RefBytes\Lti\Services\OidcLoginService;
 use RefBytes\Lti\Services\PlatformOAuth2Service;
 use RefBytes\Lti\Services\ToolKeyService;
@@ -43,5 +44,6 @@ class LtiServiceProvider extends PackageServiceProvider
         $this->app->singleton(ToolKeyService::class);
         $this->app->singleton(PlatformOAuth2Service::class);
         $this->app->singleton(DeepLinkingService::class);
+        $this->app->singleton(NrpsClient::class);
     }
 }

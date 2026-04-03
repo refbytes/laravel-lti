@@ -3,7 +3,14 @@
 namespace RefBytes\Lti;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Response;
+use RefBytes\Lti\Contracts\ContentItem;
+use RefBytes\Lti\DataTransferObjects\LtiLaunchData;
 use RefBytes\Lti\Models\LtiPlatform;
+use RefBytes\Lti\Models\LtiToolKey;
+use RefBytes\Lti\Services\DeepLinkingService;
+use RefBytes\Lti\Services\PlatformOAuth2Service;
+use RefBytes\Lti\Services\ToolKeyService;
 
 class Lti
 {
@@ -23,5 +30,71 @@ class Lti
     public function platformForIssuer(string $issuer, string $clientId, ?Model $tenant = null): ?LtiPlatform
     {
         return LtiPlatform::findByIssuerAndClientId($issuer, $clientId, $tenant);
+    }
+
+    /**
+     * Generate a new RSA keypair for the tool.
+     */
+    public function generateToolKey(?Model $tenant = null): LtiToolKey
+    {
+        return app(ToolKeyService::class)->generateKey($tenant);
+    }
+
+    /**
+     * Rotate tool keys, optionally deactivating previous ones.
+     */
+    public function rotateToolKeys(?Model $tenant = null, bool $deactivatePrevious = false): LtiToolKey
+    {
+        return app(ToolKeyService::class)->rotateKeys($tenant, $deactivatePrevious);
+    }
+
+    /**
+     * Get the tool's JWKS for a tenant.
+     *
+     * @return array{keys: array<int, array<string, string>>}
+     */
+    public function toolJwks(?Model $tenant = null): array
+    {
+        return app(ToolKeyService::class)->toJwks($tenant);
+    }
+
+    /**
+     * Sign a JWT payload using the tool's active key.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function signToolJwt(array $payload, ?Model $tenant = null): string
+    {
+        return app(ToolKeyService::class)->signJwt($payload, $tenant);
+    }
+
+    /**
+     * Get an access token from a platform for service calls.
+     *
+     * @param  array<string>  $scopes
+     */
+    public function getAccessToken(LtiPlatform $platform, array $scopes, ?Model $tenant = null): string
+    {
+        return app(PlatformOAuth2Service::class)->getAccessToken($platform, $scopes, $tenant);
+    }
+
+    /**
+     * Build a signed JWT for a deep linking response.
+     *
+     * @param  array<ContentItem>  $contentItems
+     */
+    public function buildDeepLinkingResponse(LtiLaunchData $launchData, array $contentItems, ?Model $tenant = null): string
+    {
+        return app(DeepLinkingService::class)->buildResponseJwt($launchData, $contentItems, $tenant);
+    }
+
+    /**
+     * Build an auto-submitting form response for deep linking.
+     *
+     * @param  array<ContentItem>  $contentItems
+     */
+    public function buildDeepLinkingFormResponse(LtiLaunchData $launchData, array $contentItems, ?Model $tenant = null): Response
+    {
+        return app(DeepLinkingService::class)->buildFormResponse($launchData, $contentItems, $tenant);
     }
 }

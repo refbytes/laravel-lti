@@ -103,3 +103,43 @@ it('returns null nrps info when not present', function () {
     expect($data->hasNrps())->toBeFalse();
     expect($data->nrpsServiceInfo())->toBeNull();
 });
+
+it('detects ags support', function () {
+    $data = new LtiLaunchData(
+        platform: LtiPlatform::factory()->make(),
+        messageType: 'LtiResourceLinkRequest',
+        ltiVersion: '1.3.0',
+        deploymentId: null,
+        targetLinkUri: 'https://tool.example.com/launch',
+        resourceLinkId: null,
+        userId: 'user-1',
+        roles: [],
+        claims: [
+            'https://purl.imsglobal.org/spec/lti-ags/claim/endpoint' => [
+                'lineitems' => 'https://canvas.example.com/line_items',
+                'scope' => ['https://purl.imsglobal.org/spec/lti-ags/scope/score'],
+            ],
+        ],
+    );
+
+    expect($data->hasAgs())->toBeTrue();
+    expect($data->agsServiceInfo())->not->toBeNull();
+    expect($data->agsServiceInfo()->lineItemsUrl)->toBe('https://canvas.example.com/line_items');
+});
+
+it('returns null ags info when not present', function () {
+    $data = new LtiLaunchData(
+        platform: LtiPlatform::factory()->make(),
+        messageType: 'LtiResourceLinkRequest',
+        ltiVersion: '1.3.0',
+        deploymentId: null,
+        targetLinkUri: 'https://tool.example.com/launch',
+        resourceLinkId: null,
+        userId: 'user-1',
+        roles: [],
+        claims: [],
+    );
+
+    expect($data->hasAgs())->toBeFalse();
+    expect($data->agsServiceInfo())->toBeNull();
+});

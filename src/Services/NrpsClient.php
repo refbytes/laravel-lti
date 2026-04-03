@@ -5,6 +5,7 @@ namespace RefBytes\Lti\Services;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\LazyCollection;
+use RefBytes\Lti\Concerns\ParsesLinkHeader;
 use RefBytes\Lti\DataTransferObjects\LtiLaunchData;
 use RefBytes\Lti\DataTransferObjects\NrpsMember;
 use RefBytes\Lti\DataTransferObjects\NrpsMembershipResult;
@@ -12,6 +13,8 @@ use RefBytes\Lti\DataTransferObjects\NrpsServiceInfo;
 
 class NrpsClient
 {
+    use ParsesLinkHeader;
+
     public const SCOPE_MEMBERSHIP_READONLY = 'https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly';
 
     private const CONTENT_TYPE = 'application/vnd.ims.lti-nrps.v2.membershipcontainer+json';
@@ -115,24 +118,5 @@ class NrpsClient
             'limit' => $limit,
             'rlid' => $resourceLinkId,
         ], fn ($v) => $v !== null);
-    }
-
-    /**
-     * Parse an RFC 8288 Link header for a rel="next" URL.
-     */
-    private function parseNextLink(?string $linkHeader): ?string
-    {
-        if (! $linkHeader) {
-            return null;
-        }
-
-        foreach (explode(',', $linkHeader) as $part) {
-            $part = trim($part);
-            if (preg_match('/<([^>]+)>;\s*rel="next"/', $part, $matches)) {
-                return $matches[1];
-            }
-        }
-
-        return null;
     }
 }

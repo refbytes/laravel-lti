@@ -1,9 +1,9 @@
 # This is my package laravel-lti
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/refbytes-laravel-lti/laravel-lti.svg?style=flat-square)](https://packagist.org/packages/refbytes-laravel-lti/laravel-lti)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/refbytes-laravel-lti/laravel-lti/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/refbytes-laravel-lti/laravel-lti/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/refbytes-laravel-lti/laravel-lti/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/refbytes-laravel-lti/laravel-lti/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/refbytes-laravel-lti/laravel-lti.svg?style=flat-square)](https://packagist.org/packages/refbytes-laravel-lti/laravel-lti)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/refbytes/laravel-lti.svg?style=flat-square)](https://packagist.org/packages/refbytes/laravel-lti)
+[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/refbytes/laravel-lti/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/refbytes/laravel-lti/actions?query=workflow%3Arun-tests+branch%3Amain)
+[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/refbytes/laravel-lti/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/refbytes/laravel-lti/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
+[![Total Downloads](https://img.shields.io/packagist/dt/refbytes/laravel-lti.svg?style=flat-square)](https://packagist.org/packages/refbytes/laravel-lti)
 
 This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
 
@@ -20,7 +20,7 @@ We highly appreciate you sending us a postcard from your hometown, mentioning wh
 You can install the package via composer:
 
 ```bash
-composer require refbytes-laravel-lti/laravel-lti
+composer require refbytes/laravel-lti
 ```
 
 You can publish and run the migrations with:

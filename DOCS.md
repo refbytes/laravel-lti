@@ -5,7 +5,7 @@ This guide walks through integrating `laravel-lti` into a Laravel application an
 ## Installation
 
 ```bash
-composer require refbytes-laravel-lti/laravel-lti
+composer require refbytes/laravel-lti
 ```
 
 Publish the config and run migrations:

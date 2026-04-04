@@ -1,12 +1,12 @@
 {
-    "name": "refbytes-laravel-lti/laravel-lti",
+    "name": "refbytes/laravel-lti",
     "description": "This is my package laravel-lti",
     "keywords": [
         "RefBytes",
         "laravel",
         "laravel-lti"
     ],
-    "homepage": "https://github.com/refbytes-laravel-lti/laravel-lti",
+    "homepage": "https://github.com/refbytes/laravel-lti",
     "license": "MIT",
     "authors": [
         {

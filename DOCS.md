@@ -8,10 +8,11 @@ This guide walks through integrating `laravel-lti` into a Laravel application an
 composer require refbytes/laravel-lti
 ```
 
-Publish the config and run migrations:
+Publish the config and migrations, then run them:
 
 ```bash
-php artisan vendor:publish --tag="laravel-lti-config"
+php artisan vendor:publish --tag="lti-config"
+php artisan vendor:publish --tag="lti-migrations"
 php artisan migrate
 ```
 

@@ -23,7 +23,16 @@ class LtiPlatform extends Model
         'token_url',
         'jwks_url',
         'name',
+        'organization_id',
     ];
+
+    /**
+     * @return BelongsTo<\App\Models\Organization, $this>
+     */
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Organization::class, 'organization_id');
+    }
 
     /**
      * @return BelongsTo<Model, $this>

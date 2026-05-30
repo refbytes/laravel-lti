@@ -46,13 +46,34 @@ final readonly class LtiLaunchData
     public function isInstructor(): bool
     {
         return $this->hasRole('http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor')
-            || $this->hasRole('http://purl.imsglobal.org/vocab/lis/v2/institution/person#Instructor');
+            || $this->hasRole('http://purl.imsglobal.org/vocab/lis/v2/institution/person#Instructor')
+            // LTI 1.1 LIS role URNs
+            || $this->hasRole('urn:lti:role:ims/lis/Instructor')
+            || $this->hasRole('urn:lti:instrole:ims/lis/Instructor')
+            // LTI 1.1 short-form roles
+            || $this->hasRole('Instructor');
     }
 
     public function isLearner(): bool
     {
         return $this->hasRole('http://purl.imsglobal.org/vocab/lis/v2/membership#Learner')
-            || $this->hasRole('http://purl.imsglobal.org/vocab/lis/v2/institution/person#Learner');
+            || $this->hasRole('http://purl.imsglobal.org/vocab/lis/v2/institution/person#Learner')
+            // LTI 1.1 LIS role URNs
+            || $this->hasRole('urn:lti:role:ims/lis/Learner')
+            || $this->hasRole('urn:lti:instrole:ims/lis/Student')
+            // LTI 1.1 short-form roles
+            || $this->hasRole('Learner')
+            || $this->hasRole('Student');
+    }
+
+    /**
+     * True when this launch carries an LTI 1.1 `lis_outcome_service_url` —
+     * i.e. the platform allows grade passback via the Basic Outcomes Service.
+     */
+    public function hasBasicOutcomes(): bool
+    {
+        return $this->claim('lis_outcome_service_url') !== null
+            && $this->claim('lis_result_sourcedid') !== null;
     }
 
     public function isDeepLinkingRequest(): bool

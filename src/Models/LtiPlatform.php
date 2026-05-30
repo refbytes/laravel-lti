@@ -22,17 +22,20 @@ class LtiPlatform extends Model
         'auth_url',
         'token_url',
         'jwks_url',
+        'shared_secret',
         'name',
-        'organization_id',
+        'version',
+        'registered_at',
+        'registration_token',
     ];
 
     /**
-     * @return BelongsTo<\App\Models\Organization, $this>
+     * @var array<string, string>
      */
-    public function organization(): BelongsTo
-    {
-        return $this->belongsTo(\App\Models\Organization::class, 'organization_id');
-    }
+    protected $casts = [
+        'registered_at' => 'datetime',
+        'shared_secret' => 'encrypted',
+    ];
 
     /**
      * @return BelongsTo<Model, $this>
@@ -70,6 +73,18 @@ class LtiPlatform extends Model
     {
         return static::query()
             ->forIssuerAndClientId($issuer, $clientId)
+            ->forTenant($tenant)
+            ->first();
+    }
+
+    /**
+     * Look up an LTI 1.1 platform by its consumer key. The package stores the
+     * consumer key in the `client_id` column to unify lookup across versions.
+     */
+    public static function findByConsumerKey(string $consumerKey, ?Model $tenant = null): ?static
+    {
+        return static::query()
+            ->where('client_id', $consumerKey)
             ->forTenant($tenant)
             ->first();
     }

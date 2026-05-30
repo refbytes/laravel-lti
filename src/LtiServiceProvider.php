@@ -6,10 +6,14 @@ use RefBytes\Lti\Commands\DeactivateToolKeyCommand;
 use RefBytes\Lti\Commands\GenerateToolKeyCommand;
 use RefBytes\Lti\Commands\ListToolKeysCommand;
 use RefBytes\Lti\Services\AgsClient;
+use RefBytes\Lti\Services\BasicOutcomesClient;
 use RefBytes\Lti\Services\DeepLinkingService;
+use RefBytes\Lti\Services\DynamicRegistrationService;
 use RefBytes\Lti\Services\JwksService;
 use RefBytes\Lti\Services\LaunchValidationService;
+use RefBytes\Lti\Services\Lti11LaunchValidator;
 use RefBytes\Lti\Services\NrpsClient;
+use RefBytes\Lti\Services\OAuth1Signer;
 use RefBytes\Lti\Services\OidcLoginService;
 use RefBytes\Lti\Services\PlatformOAuth2Service;
 use RefBytes\Lti\Services\ToolKeyService;
@@ -47,5 +51,9 @@ class LtiServiceProvider extends PackageServiceProvider
         $this->app->singleton(DeepLinkingService::class);
         $this->app->singleton(NrpsClient::class);
         $this->app->singleton(AgsClient::class);
+        $this->app->singleton(DynamicRegistrationService::class);
+        $this->app->singleton(OAuth1Signer::class);
+        $this->app->singleton(Lti11LaunchValidator::class);
+        $this->app->singleton(BasicOutcomesClient::class);
     }
 }

@@ -29,13 +29,28 @@ class LaunchValidationService
 
     public function __construct(
         private JwksService $jwksService,
+        private Lti11LaunchValidator $lti11Validator,
     ) {}
 
     /**
      * Validate the LTI launch callback and return structured launch data.
+     *
+     * Routes by version: an `id_token` form param indicates LTI 1.3 (JWT);
+     * an `oauth_consumer_key` indicates LTI 1.1 (OAuth 1.0a form POST).
      */
     public function validateLaunch(Request $request): LtiLaunchData
     {
+        if ($request->input('oauth_consumer_key')) {
+            $launchData = $this->lti11Validator->validate($request);
+
+            if (config('lti.store_launches')) {
+                $launch = $this->persistLaunch($launchData, $launchData->platform);
+                $launchData = $this->withLaunchId($launchData, $launch->id);
+            }
+
+            return $launchData;
+        }
+
         $idToken = $request->input('id_token');
         $state = $request->input('state');
 
@@ -63,21 +78,26 @@ class LaunchValidationService
 
         if (config('lti.store_launches')) {
             $launch = $this->persistLaunch($launchData, $platform);
-            $launchData = new LtiLaunchData(
-                platform: $launchData->platform,
-                messageType: $launchData->messageType,
-                ltiVersion: $launchData->ltiVersion,
-                deploymentId: $launchData->deploymentId,
-                targetLinkUri: $launchData->targetLinkUri,
-                resourceLinkId: $launchData->resourceLinkId,
-                userId: $launchData->userId,
-                roles: $launchData->roles,
-                claims: $launchData->claims,
-                launchId: $launch->id,
-            );
+            $launchData = $this->withLaunchId($launchData, $launch->id);
         }
 
         return $launchData;
+    }
+
+    private function withLaunchId(LtiLaunchData $launchData, string $launchId): LtiLaunchData
+    {
+        return new LtiLaunchData(
+            platform: $launchData->platform,
+            messageType: $launchData->messageType,
+            ltiVersion: $launchData->ltiVersion,
+            deploymentId: $launchData->deploymentId,
+            targetLinkUri: $launchData->targetLinkUri,
+            resourceLinkId: $launchData->resourceLinkId,
+            userId: $launchData->userId,
+            roles: $launchData->roles,
+            claims: $launchData->claims,
+            launchId: $launchId,
+        );
     }
 
     /**

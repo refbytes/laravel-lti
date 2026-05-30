@@ -66,8 +66,63 @@ The package registers three routes under the configured prefix (default `lti`):
 | GET/POST | `/lti/login` | `lti.login` | OIDC login initiation |
 | POST | `/lti/launch` | `lti.launch` | Launch callback (JWT validation) |
 | GET | `/lti/jwks` | `lti.jwks` | Tool's public JWKS |
+| GET | `/lti/register` | `lti.register` | LTI 1.3 Dynamic Registration initiation |
 
 These routes intentionally have no CSRF middleware since LTI launches are cross-origin POST requests from the LMS platform.
+
+## Dynamic Registration
+
+LTI 1.3 Dynamic Registration eliminates the manual copy-paste install flow. Instead of creating a developer key, configuring scopes, and pasting URLs by hand, an LMS admin can paste a single URL — your tool's registration initiation URL — and the rest happens automatically. The package fetches the LMS's OpenID configuration, POSTs a registration request with your tool's metadata, and creates an `LtiPlatform` record for you. The admin clicks one button and they're done.
+
+### What the admin pastes
+
+```
+https://yourdomain.com/lti/register
+```
+
+That's the entire install instruction for any LMS that supports Dynamic Registration (Canvas, Moodle, Brightspace, and others). Once pasted, your tool and the LMS negotiate the configuration; the admin sees a "Registration Complete" page and clicks **Complete Registration** to finish.
+
+### Configuring your tool's metadata
+
+The metadata sent during registration comes from `config/lti.php` under the `tool` array:
+
+```php
+'tool' => [
+    'name'              => env('LTI_TOOL_NAME'),         // Required — shown in the LMS
+    'description'       => env('LTI_TOOL_DESCRIPTION'),
+    'domain'            => env('LTI_TOOL_DOMAIN'),       // e.g. tool.example.com
+    'logo_uri'          => env('LTI_TOOL_LOGO_URI'),     // Shown in LMS app catalog
+    'client_uri'        => env('LTI_TOOL_CLIENT_URI'),   // Public homepage
+    'policy_uri'        => env('LTI_TOOL_POLICY_URI'),   // Privacy policy
+    'tos_uri'           => env('LTI_TOOL_TOS_URI'),      // Terms of service
+    'contacts'          => ['support@example.com'],
+    'default_scopes'    => [
+        'https://purl.imsglobal.org/spec/lti-ags/scope/lineitem',
+        'https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly',
+        'https://purl.imsglobal.org/spec/lti-ags/scope/score',
+        'https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly',
+    ],
+    'deep_linking_enabled' => true,    // Set false if your tool doesn't support Deep Linking
+    'deep_linking_label'   => 'Add Activity',
+],
+```
+
+`initiate_login_uri`, `redirect_uris`, and `jwks_uri` are derived from the package's named routes (`lti.login`, `lti.launch`, `lti.jwks`) — you do not need to configure them.
+
+### What gets stored
+
+After a successful registration, a new row appears in `lti_platforms` with:
+- `issuer`, `auth_url`, `token_url`, `jwks_url` — from the LMS's OpenID configuration
+- `client_id` — assigned by the LMS during registration
+- `name` — the LMS product family code (e.g. `canvas`, `moodle`)
+- `version` — `'1.3'`
+- `registered_at` — timestamp of registration
+
+Manually-registered platforms (via `Lti::registerPlatform()`) continue to work alongside dynamically-registered ones. They differ only in that `registered_at` will be null on manual registrations.
+
+### Tenant scoping
+
+If multi-tenancy is enabled (`tenant_model` + `tenant_resolver` set in config), the registration route uses the same tenant resolver as the rest of the package. A platform registered while a tenant is resolved is scoped to that tenant — the consuming app might serve `/lti/register` from `https://tenant-a.example.com/lti/register` and the new platform record will be associated with tenant A.
 
 ## Connecting to an LMS
 
@@ -165,6 +220,105 @@ protected $listen = [
 ```
 
 Note: The `LaunchController` returns a JSON response by default. To redirect users to your app after launch, you can override the controller behavior by registering your own route that calls the `LaunchValidationService` directly, or handle the redirect in your event listener using a terminable middleware.
+
+## LTI 1.1 Support
+
+The package also supports LTI 1.1 launches (OAuth 1.0a signed form-POSTs) alongside LTI 1.3. The same `/lti/launch` endpoint, the same `LtiLaunchValidated` event, and the same `LtiLaunchData` DTO are used — version is detected automatically based on whether the request carries `id_token` (1.3) or `oauth_consumer_key` (1.1).
+
+### Why LTI 1.1?
+
+LTI 1.1 is the only standard that allows **teachers to install your tool without LMS admin involvement**. Teachers paste your launch URL, a consumer key, and a shared secret directly into a course's External Tools settings. The trade-off is reduced capability:
+
+| Capability | LTI 1.1 | LTI 1.3 |
+|---|---|---|
+| Teacher self-install (no admin) | ✅ | ❌ |
+| OAuth 1.0a (HMAC-SHA1) | ✅ | — |
+| JWT-based auth, OIDC login | — | ✅ |
+| Grade passback (single score) | ✅ via Basic Outcomes | ✅ via AGS |
+| Create gradebook columns | ❌ | ✅ |
+| Read scores back | Limited | ✅ |
+| Roster access (NRPS) | ❌ | ✅ |
+| Deep Linking | ❌ (not yet supported by this package) | ✅ |
+| Future-proof | ⚠️ deprecated by 1EdTech | ✅ |
+
+Pick the version per consuming app — or support both and let the LMS decide.
+
+### Registering a 1.1 platform
+
+```php
+use RefBytes\Lti\Facades\Lti;
+
+Lti::registerPlatform([
+    'name'          => 'Self-install consumer',
+    'client_id'     => 'your-consumer-key',     // doubles as oauth_consumer_key
+    'shared_secret' => 'your-shared-secret',    // stored encrypted at rest
+    'version'       => 'LTI-1p0',
+]);
+```
+
+The `auth_url`, `token_url`, `jwks_url`, `issuer`, and `deployment_id` fields are unused for 1.1 and can be omitted.
+
+### Teacher install instructions
+
+Teachers paste these three values into their course's External Tool / External App configuration:
+
+| Field | Value |
+|---|---|
+| Launch URL | `https://yourdomain.com/lti/launch` |
+| Consumer Key | The `client_id` value you stored |
+| Shared Secret | The `shared_secret` value you stored |
+
+That's it — no developer key, no admin involvement.
+
+### Reading 1.1 claims
+
+LTI 1.1 sends data as flat form params (no namespaced URLs like 1.3). Access them via the same `claim()` helper:
+
+```php
+$launch->ltiVersion;                               // 'LTI-1p0'
+$launch->userId;                                   // mapped from user_id
+$launch->resourceLinkId;                           // mapped from resource_link_id
+$launch->isInstructor();                           // handles 1.1 short roles + LIS URNs
+$launch->claim('context_title');                   // 'Algebra 101'
+$launch->claim('lis_person_contact_email_primary');// 'student@example.com'
+$launch->hasBasicOutcomes();                       // true if grade passback is available
+```
+
+### Grade passback with the unified `sendScore()` facade
+
+When you want a single grade-passback call that works for both versions, use `Lti::sendScore()`:
+
+```php
+use RefBytes\Lti\Facades\Lti;
+
+// Works for 1.3 (uses AGS) AND 1.1 (uses Basic Outcomes Service)
+Lti::sendScore($launch, scoreGiven: 85.0, scoreMaximum: 100.0, comment: 'Great work!');
+```
+
+Routing rules:
+- LTI 1.3 → uses the launch's AGS `lineitem` URL via `AgsClient::submitScore()`. Throws `LtiFeatureNotSupportedException` if the launch lacks an AGS endpoint or `lineitem` URL.
+- LTI 1.1 → uses the launch's `lis_outcome_service_url` + `lis_result_sourcedid` via `BasicOutcomesClient::replaceResult()`. Throws `LtiFeatureNotSupportedException` if either is missing.
+
+For advanced 1.3 workflows (creating line items, posting partial progress, reading results, etc.) the existing `Lti::createLineItem()`, `Lti::submitScore($launch, $lineItemUrl, $score)`, and `Lti::getResults()` remain available — they are 1.3-only.
+
+For lower-level 1.1 access (delete a score, read a score back), use the `BasicOutcomesClient` directly:
+
+```php
+use RefBytes\Lti\Services\BasicOutcomesClient;
+
+$normalized = app(BasicOutcomesClient::class)->readResult($launch);  // 0..1, or null
+app(BasicOutcomesClient::class)->deleteResult($launch);
+```
+
+### Security
+
+LTI 1.1 launches are protected by:
+
+- **OAuth 1.0a HMAC-SHA1 signature verification** against the platform's stored `shared_secret`
+- **Timestamp tolerance** (default ±5 minutes, see `lti.oauth1_timestamp_tolerance`)
+- **Nonce replay protection** — used nonces are cached for `lti.oauth1_nonce_ttl` seconds (default 10 minutes)
+
+The shared secret is stored encrypted on the model via Laravel's `encrypted` cast.
 
 ## Working with Launch Data
 

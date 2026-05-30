@@ -13,7 +13,9 @@ use RefBytes\Lti\DataTransferObjects\LtiLaunchData;
 use RefBytes\Lti\DataTransferObjects\NrpsMembershipResult;
 use RefBytes\Lti\Models\LtiPlatform;
 use RefBytes\Lti\Models\LtiToolKey;
+use RefBytes\Lti\Exceptions\LtiFeatureNotSupportedException;
 use RefBytes\Lti\Services\AgsClient;
+use RefBytes\Lti\Services\BasicOutcomesClient;
 use RefBytes\Lti\Services\DeepLinkingService;
 use RefBytes\Lti\Services\NrpsClient;
 use RefBytes\Lti\Services\PlatformOAuth2Service;
@@ -184,6 +186,53 @@ class Lti
      */
     public function submitScore(LtiLaunchData $launchData, string $lineItemUrl, AgsScore $score, ?Model $tenant = null): void
     {
+        app(AgsClient::class)->submitScore($launchData, $lineItemUrl, $score, $tenant);
+    }
+
+    /**
+     * Unified grade passback that works for both LTI 1.3 (AGS) and LTI 1.1
+     * (Basic Outcomes Service). Routes by `$launchData->ltiVersion`:
+     *
+     *  - 1.3 → uses the launch's AGS claim `lineitem` URL with `AgsClient::submitScore()`
+     *  - 1.1 → uses the launch's `lis_outcome_service_url` + `lis_result_sourcedid`
+     *
+     * Throws `LtiFeatureNotSupportedException` when the launch lacks the
+     * service info needed for either path.
+     */
+    public function sendScore(
+        LtiLaunchData $launchData,
+        float $scoreGiven,
+        float $scoreMaximum,
+        ?string $comment = null,
+        ?Model $tenant = null,
+    ): void {
+        if ($launchData->ltiVersion === 'LTI-1p0') {
+            app(BasicOutcomesClient::class)->replaceResult($launchData, $scoreGiven, $scoreMaximum, $tenant);
+
+            return;
+        }
+
+        if (! $launchData->hasAgs()) {
+            throw new LtiFeatureNotSupportedException(
+                'Launch does not carry AGS service info; cannot send a score.'
+            );
+        }
+
+        $lineItemUrl = $launchData->agsServiceInfo()->lineItemUrl;
+        if (! $lineItemUrl) {
+            throw new LtiFeatureNotSupportedException(
+                'AGS service info has no lineitem URL; create or pick a line item explicitly with submitScore().'
+            );
+        }
+
+        $score = AgsScore::make($launchData->userId ?? '')
+            ->scoreGiven($scoreGiven)
+            ->scoreMaximum($scoreMaximum);
+
+        if ($comment !== null) {
+            $score->comment($comment);
+        }
+
         app(AgsClient::class)->submitScore($launchData, $lineItemUrl, $score, $tenant);
     }
 

@@ -19,8 +19,8 @@ class OAuth1Signer
     /**
      * Compute the HMAC-SHA1 signature for an OAuth 1.0a request.
      *
-     * @param  string  $method        HTTP method (uppercased internally)
-     * @param  string  $url           Request URL (query string stripped, normalized)
+     * @param  string  $method  HTTP method (uppercased internally)
+     * @param  string  $url  Request URL (query string stripped, normalized)
      * @param  array<string, string>  $params  All oauth_* params + form params (NOT including oauth_signature)
      * @param  string  $consumerSecret  Shared secret
      */

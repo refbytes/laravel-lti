@@ -11,7 +11,7 @@ const OUTCOME_URL = 'https://lms.example.com/outcomes';
 
 function successResponseXml(): string
 {
-    return <<<XML
+    return <<<'XML'
         <?xml version="1.0" encoding="UTF-8"?>
         <imsx_POXEnvelopeResponse xmlns="http://www.imsglobal.org/services/ltiv1p1/xsd/imsoms_v1p0">
           <imsx_POXHeader>
@@ -135,7 +135,7 @@ it('throws when scoreMaximum is zero', function () {
 });
 
 it('reads a score back via readResult', function () {
-    $readResponse = <<<XML
+    $readResponse = <<<'XML'
         <?xml version="1.0" encoding="UTF-8"?>
         <imsx_POXEnvelopeResponse xmlns="http://www.imsglobal.org/services/ltiv1p1/xsd/imsoms_v1p0">
           <imsx_POXHeader>

@@ -97,7 +97,7 @@ class DynamicRegistrationService
             $response = $request->post($registrationEndpoint, $body)->throw();
         } catch (RequestException $e) {
             throw new LtiException(
-                "Platform rejected registration request: ".$e->getMessage(),
+                'Platform rejected registration request: '.$e->getMessage(),
                 previous: $e,
             );
         }

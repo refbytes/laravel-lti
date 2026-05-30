@@ -84,7 +84,7 @@ it('routes 1.3 launches to AgsClient (POSTs to the lineitem scores URL)', functi
 });
 
 it('routes 1.1 launches to BasicOutcomesClient (POSTs to the outcome service URL)', function () {
-    $successXml = <<<XML
+    $successXml = <<<'XML'
         <imsx_POXEnvelopeResponse>
           <imsx_POXHeader><imsx_POXResponseHeaderInfo><imsx_statusInfo>
             <imsx_codeMajor>success</imsx_codeMajor>

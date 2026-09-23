@@ -260,3 +260,115 @@ it('throws when ags claim is missing', function () {
 
     app(AgsClient::class)->getLineItems($launchData);
 })->throws(LtiException::class, 'Missing AGS');
+
+it('inserts /scores before the query string of a Moodle-style line item URL', function () {
+    $lineItemUrl = 'https://moodle.example.com/mod/lti/services.php/2/lineitems/7/lineitem?type_id=2';
+
+    Http::fake([
+        'https://canvas.example.com/login/oauth2/token' => Http::response([
+            'access_token' => 'ags-token',
+            'expires_in' => 3600,
+        ]),
+        'moodle.example.com/*' => Http::response(null, 200),
+    ]);
+
+    app(AgsClient::class)->submitScore($this->launchData, $lineItemUrl, AgsScore::make('student-42')->scoreGiven(85.0));
+
+    Http::assertSent(fn ($request) => $request->method() === 'POST'
+        && $request->url() === 'https://moodle.example.com/mod/lti/services.php/2/lineitems/7/lineitem/scores?type_id=2');
+});
+
+it('keeps the line item query string when fetching results', function () {
+    $lineItemUrl = 'https://moodle.example.com/mod/lti/services.php/2/lineitems/7/lineitem?type_id=2';
+
+    Http::fake([
+        'https://canvas.example.com/login/oauth2/token' => Http::response([
+            'access_token' => 'ags-token',
+            'expires_in' => 3600,
+        ]),
+        'moodle.example.com/*' => Http::response([]),
+    ]);
+
+    app(AgsClient::class)->getResults($this->launchData, $lineItemUrl, userId: 'student-42');
+
+    Http::assertSent(fn ($request) => $request->method() === 'GET'
+        && str_starts_with($request->url(), 'https://moodle.example.com/mod/lti/services.php/2/lineitems/7/lineitem/results?')
+        && $request['type_id'] === '2'
+        && $request['user_id'] === 'student-42');
+});
+
+it('keeps the line item query string when lazily fetching results', function () {
+    $lineItemUrl = 'https://moodle.example.com/mod/lti/services.php/2/lineitems/7/lineitem?type_id=2';
+
+    Http::fake([
+        'https://canvas.example.com/login/oauth2/token' => Http::response([
+            'access_token' => 'ags-token',
+            'expires_in' => 3600,
+        ]),
+        'moodle.example.com/*' => Http::response([]),
+    ]);
+
+    app(AgsClient::class)->getResultsLazy($this->launchData, $lineItemUrl)->all();
+
+    Http::assertSent(fn ($request) => $request->method() === 'GET'
+        && $request->url() === 'https://moodle.example.com/mod/lti/services.php/2/lineitems/7/lineitem/results?type_id=2');
+});
+
+it('keeps the query string of a paginated next link', function () {
+    $lineItemUrl = $this->lineItemsUrl.'/1';
+    $nextUrl = $lineItemUrl.'/results?page=2&per_page=1';
+
+    Http::fake([
+        'https://canvas.example.com/login/oauth2/token' => Http::response([
+            'access_token' => 'ags-token',
+            'expires_in' => 3600,
+        ]),
+        $nextUrl => Http::response([
+            ['id' => $lineItemUrl.'/results/2', 'scoreOf' => $lineItemUrl, 'userId' => 'student-2', 'resultScore' => 75, 'resultMaximum' => 100],
+        ]),
+        $lineItemUrl.'/results*' => Http::response([
+            ['id' => $lineItemUrl.'/results/1', 'scoreOf' => $lineItemUrl, 'userId' => 'student-1', 'resultScore' => 90, 'resultMaximum' => 100],
+        ], 200, ['Link' => '<'.$nextUrl.'>; rel="next"']),
+    ]);
+
+    $results = app(AgsClient::class)->getResults($this->launchData, $lineItemUrl);
+
+    expect($results)->toHaveCount(2);
+    Http::assertSent(fn ($request) => $request->url() === $nextUrl);
+});
+
+it('keeps the query string of a Moodle-style lineitems URL when fetching line items', function () {
+    $lineItemsUrl = 'https://moodle.example.com/mod/lti/services.php/2/lineitems?type_id=2';
+
+    $launchData = new LtiLaunchData(
+        platform: $this->platform,
+        messageType: 'LtiResourceLinkRequest',
+        ltiVersion: '1.3.0',
+        deploymentId: '1',
+        targetLinkUri: 'https://tool.example.com/launch',
+        resourceLinkId: 'link-1',
+        userId: 'user-1',
+        roles: [],
+        claims: [
+            'https://purl.imsglobal.org/spec/lti-ags/claim/endpoint' => [
+                'lineitems' => $lineItemsUrl,
+                'scope' => [AgsClient::SCOPE_LINE_ITEM],
+            ],
+        ],
+    );
+
+    Http::fake([
+        'https://canvas.example.com/login/oauth2/token' => Http::response([
+            'access_token' => 'ags-token',
+            'expires_in' => 3600,
+        ]),
+        'moodle.example.com/*' => Http::response([]),
+    ]);
+
+    app(AgsClient::class)->getLineItems($launchData, tag: 'grade');
+
+    Http::assertSent(fn ($request) => $request->method() === 'GET'
+        && str_starts_with($request->url(), 'https://moodle.example.com/mod/lti/services.php/2/lineitems?')
+        && $request['type_id'] === '2'
+        && $request['tag'] === 'grade');
+});

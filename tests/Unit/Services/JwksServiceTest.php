@@ -1,5 +1,7 @@
 <?php
 
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RefBytes\Lti\Exceptions\LtiJwtException;
@@ -29,6 +31,27 @@ it('fetches and caches a JWKS', function () {
 
     $cachedKeys = $this->jwksService->getKeySet($jwksUrl);
     expect($cachedKeys)->toEqual($keys);
+});
+
+it('caches the JWKS in a store that serializes values', function () {
+    $jwksUrl = 'https://platform.example.com/jwks';
+
+    config()->set('lti.cache_store', 'file');
+    Cache::store('file')->flush();
+
+    Http::fake([
+        $jwksUrl => Http::response($this->jwtHelper->jwks()),
+    ]);
+
+    $this->jwksService->getKeySet($jwksUrl);
+    $cachedKeys = $this->jwksService->getKeySet($jwksUrl);
+
+    $token = $this->jwtHelper->encode(['sub' => 'user-1']);
+
+    expect($cachedKeys[$this->jwtHelper->kid])->toBeInstanceOf(Key::class)
+        ->and(JWT::decode($token, $cachedKeys)->sub)->toBe('user-1');
+
+    Http::assertSentCount(1);
 });
 
 it('clears cached JWKS', function () {

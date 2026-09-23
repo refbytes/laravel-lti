@@ -3,6 +3,7 @@
 namespace RefBytes\Lti\Services;
 
 use Firebase\JWT\JWK;
+use Firebase\JWT\Key;
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -13,14 +14,18 @@ class JwksService
     /**
      * Fetch and cache a platform's JSON Web Key Set.
      *
-     * @return array<string, \OpenSSLAsymmetricKey>
+     * The raw JWKS array is cached rather than the parsed keys: parsed `Key`
+     * objects wrap an `OpenSSLAsymmetricKey`, which cannot be serialized, so
+     * caching them fails on any store other than `array`.
+     *
+     * @return array<string, Key>
      */
     public function getKeySet(string $jwksUrl): array
     {
         $cacheKey = $this->cacheKey($jwksUrl);
         $ttl = config('lti.jwks_ttl', 86400);
 
-        return $this->cache()->remember($cacheKey, $ttl, function () use ($jwksUrl) {
+        $jwks = $this->cache()->remember($cacheKey, $ttl, function () use ($jwksUrl) {
             $response = Http::throw()->get($jwksUrl);
 
             $jwks = $response->json();
@@ -29,8 +34,10 @@ class JwksService
                 throw new LtiJwtException("Invalid JWKS response from: {$jwksUrl}");
             }
 
-            return JWK::parseKeySet($jwks);
+            return $jwks;
         });
+
+        return JWK::parseKeySet($jwks);
     }
 
     public function clearCache(string $jwksUrl): void

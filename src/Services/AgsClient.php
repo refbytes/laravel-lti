@@ -71,7 +71,7 @@ class AgsClient
         do {
             $response = Http::withToken($token)
                 ->accept(self::CONTENT_TYPE_LINE_ITEM_CONTAINER)
-                ->get($url, $query);
+                ->get(...$this->withQuery($url, $query));
 
             $response->throw();
 
@@ -159,7 +159,7 @@ class AgsClient
 
         $response = Http::withToken($token)
             ->contentType(self::CONTENT_TYPE_SCORE)
-            ->post(rtrim($lineItemUrl, '/').'/scores', $score->toArray());
+            ->post($this->lineItemServiceUrl($lineItemUrl, 'scores'), $score->toArray());
 
         $response->throw();
     }
@@ -183,13 +183,13 @@ class AgsClient
             'limit' => $limit,
         ], fn ($v) => $v !== null);
 
-        $url = rtrim($lineItemUrl, '/').'/results';
+        $url = $this->lineItemServiceUrl($lineItemUrl, 'results');
         $results = [];
 
         do {
             $response = Http::withToken($token)
                 ->accept(self::CONTENT_TYPE_RESULT_CONTAINER)
-                ->get($url, $query);
+                ->get(...$this->withQuery($url, $query));
 
             $response->throw();
 
@@ -222,12 +222,12 @@ class AgsClient
                 'limit' => $limit,
             ], fn ($v) => $v !== null);
 
-            $url = rtrim($lineItemUrl, '/').'/results';
+            $url = $this->lineItemServiceUrl($lineItemUrl, 'results');
 
             do {
                 $response = Http::withToken($token)
                     ->accept(self::CONTENT_TYPE_RESULT_CONTAINER)
-                    ->get($url, $query);
+                    ->get(...$this->withQuery($url, $query));
 
                 $response->throw();
 
@@ -239,6 +239,38 @@ class AgsClient
                 $query = [];
             } while ($url !== null);
         });
+    }
+
+    /**
+     * Append a service path segment (e.g. "scores") to a line item URL.
+     *
+     * Per the AGS spec the segment is added to the path, so any query string
+     * must stay after it. Moodle line item URLs carry `?type_id=N`; naive
+     * concatenation would put the segment inside the query string instead.
+     */
+    private function lineItemServiceUrl(string $lineItemUrl, string $segment): string
+    {
+        [$path, $queryString] = array_pad(explode('?', $lineItemUrl, 2), 2, null);
+
+        return rtrim($path, '/').'/'.$segment.($queryString !== null ? '?'.$queryString : '');
+    }
+
+    /**
+     * Split a URL's own query string into the query array for a GET request.
+     *
+     * Guzzle's `query` option replaces the URL's query string outright, which
+     * would drop parameters like Moodle's `type_id` or a next-page cursor.
+     *
+     * @param  array<string, mixed>  $query
+     * @return array{0: string, 1: array<string, mixed>}
+     */
+    private function withQuery(string $url, array $query): array
+    {
+        [$path, $queryString] = array_pad(explode('?', $url, 2), 2, '');
+
+        parse_str($queryString, $urlQuery);
+
+        return [$path, array_merge($urlQuery, $query)];
     }
 
     private function getServiceInfo(LtiLaunchData $launchData): AgsServiceInfo

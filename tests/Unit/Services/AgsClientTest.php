@@ -188,7 +188,7 @@ it('submits a score', function () {
     Http::assertSent(function ($request) {
         return $request->method() === 'POST'
             && str_contains($request->url(), '/scores')
-            && str_contains($request->header('Content-Type')[0] ?? '', 'score+json');
+            && $request->header('Content-Type')[0] === 'application/vnd.ims.lis.v1.score+json';
     });
 });
 

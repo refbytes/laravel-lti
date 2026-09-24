@@ -29,7 +29,7 @@ class AgsClient
 
     private const CONTENT_TYPE_LINE_ITEM_CONTAINER = 'application/vnd.ims.lis.v2.lineitemcontainer+json';
 
-    private const CONTENT_TYPE_SCORE = 'application/vnd.ims.lis.v2.score+json';
+    private const CONTENT_TYPE_SCORE = 'application/vnd.ims.lis.v1.score+json';
 
     private const CONTENT_TYPE_RESULT_CONTAINER = 'application/vnd.ims.lis.v2.resultcontainer+json';
 

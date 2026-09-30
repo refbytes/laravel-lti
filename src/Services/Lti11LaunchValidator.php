@@ -26,7 +26,7 @@ class Lti11LaunchValidator
 
     public function validate(Request $request): LtiLaunchData
     {
-        $params = $request->post();
+        $params = $this->signedParams($request);
 
         $consumerKey = $params['oauth_consumer_key'] ?? null;
         if (! $consumerKey) {
@@ -52,6 +52,20 @@ class Lti11LaunchValidator
         $this->assertValidSignature($request, $params, $platform->shared_secret);
 
         return $this->buildLaunchData($params, $platform);
+    }
+
+    /**
+     * The parameters the LMS signed: the POST body plus the launch URL's
+     * query string (RFC 5849 §3.4.1.3.1). Tools put resource ids in that
+     * query when an LMS discards Content-Item custom params. Moodle signs the
+     * query params but strips them from the body; Canvas signs them once and
+     * copies them into the body, so each key counts once and body values win.
+     *
+     * @return array<string, mixed>
+     */
+    private function signedParams(Request $request): array
+    {
+        return array_merge($request->query(), $request->post());
     }
 
     private function assertFreshTimestamp(?string $timestamp): void

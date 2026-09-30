@@ -284,6 +284,8 @@ $launch->claim('lis_person_contact_email_primary');// 'student@example.com'
 $launch->hasBasicOutcomes();                       // true if grade passback is available
 ```
 
+Query params on the launch URL are part of the signed set and readable with `claim()` like any form param. Canvas discards the `custom` params of an LTI 1.1 Content-Item link, so put resource ids in the link's `url` query string instead (e.g. `/lti/launch?custom_resource_id=42`).
+
 ### Grade passback with the unified `sendScore()` facade
 
 When you want a single grade-passback call that works for both versions, use `Lti::sendScore()`:

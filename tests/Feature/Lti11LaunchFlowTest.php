@@ -139,6 +139,39 @@ it('returns 400 when oauth signature is invalid', function () {
         ->assertJsonFragment(['error' => 'OAuth signature verification failed.']);
 });
 
+it('accepts signed launch URL query params that the LMS leaves out of the body', function () {
+    Event::fake([LtiLaunchValidated::class]);
+    lti11Platform();
+
+    // Moodle signs the launch URL's query params, then strips them from the POST body.
+    $params = lti11SignedLaunchParams(['custom_deck_id' => 'deck-7']);
+    unset($params['custom_deck_id']);
+
+    $this->post(route('lti.launch', ['custom_deck_id' => 'deck-7']), $params)->assertOk();
+
+    Event::assertDispatched(LtiLaunchValidated::class, fn ($event) => $event->launch->claim('custom_deck_id') === 'deck-7');
+});
+
+it('accepts signed launch URL query params that the LMS also copies into the body', function () {
+    Event::fake([LtiLaunchValidated::class]);
+    lti11Platform();
+
+    // Canvas signs the launch URL's query params once and copies them into the POST body.
+    $params = lti11SignedLaunchParams(['custom_deck_id' => 'deck-7']);
+
+    $this->post(route('lti.launch', ['custom_deck_id' => 'deck-7']), $params)->assertOk();
+
+    Event::assertDispatched(LtiLaunchValidated::class, fn ($event) => $event->launch->claim('custom_deck_id') === 'deck-7');
+});
+
+it('rejects launch URL query params the LMS did not sign', function () {
+    lti11Platform();
+
+    $this->post(route('lti.launch', ['custom_deck_id' => 'forged']), lti11SignedLaunchParams())
+        ->assertStatus(400)
+        ->assertJsonFragment(['error' => 'OAuth signature verification failed.']);
+});
+
 it('returns 400 when oauth_timestamp is stale', function () {
     lti11Platform();
 
